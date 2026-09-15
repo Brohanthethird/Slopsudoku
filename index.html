@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Number Squares — a 4x4 Sudoku for Kids</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sun: #FFC93C;
+    --sky: #3FA7D6;
+    --coral: #FF6B6B;
+    --leaf: #4CAF7D;
+    --cream: #FFF8EC;
+    --ink: #2E2A26;
+    --panel: #FFFFFF;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--cream);
+    background-image:
+      radial-gradient(circle at 8% 15%, rgba(63,167,214,0.14) 0, transparent 40%),
+      radial-gradient(circle at 92% 85%, rgba(255,107,107,0.14) 0, transparent 40%),
+      radial-gradient(circle at 90% 10%, rgba(255,201,60,0.18) 0, transparent 35%);
+    font-family: 'Nunito', sans-serif;
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 16px 60px;
+  }
+
+  h1 {
+    font-family: 'Baloo 2', sans-serif;
+    font-weight: 800;
+    font-size: clamp(2rem, 6vw, 2.8rem);
+    margin: 4px 0 2px;
+    color: var(--coral);
+    text-shadow: 3px 3px 0 rgba(255,201,60,0.5);
+  }
+
+  .subtitle {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ink);
+    opacity: 0.75;
+    margin-bottom: 22px;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 22px;
+  }
+
+  .size-btn, .level-btn, .new-btn {
+    font-family: 'Baloo 2', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    border: none;
+    border-radius: 999px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+  }
+
+  .size-btn, .level-btn {
+    background: var(--panel);
+    color: var(--ink);
+  }
+
+  .size-btn.active, .level-btn.active {
+    background: var(--sky);
+    color: white;
+  }
+
+  .new-btn {
+    background: var(--leaf);
+    color: white;
+  }
+
+  .size-btn:active, .level-btn:active, .new-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.15);
+  }
+
+  .board-wrap {
+    background: var(--panel);
+    border-radius: 28px;
+    padding: 18px;
+    box-shadow: 0 10px 0 rgba(0,0,0,0.08), 0 14px 30px rgba(0,0,0,0.08);
+  }
+
+  .board {
+    display: grid;
+    gap: 4px;
+    background: var(--ink);
+    border-radius: 16px;
+    padding: 4px;
+  }
+
+  .board.size-4 {
+    grid-template-columns: repeat(4, minmax(56px, 76px));
+    grid-template-rows: repeat(4, minmax(56px, 76px));
+  }
+
+  .board.size-6 {
+    grid-template-columns: repeat(6, minmax(40px, 58px));
+    grid-template-rows: repeat(6, minmax(40px, 58px));
+  }
+
+  .cell {
+    background: var(--panel);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Baloo 2', sans-serif;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    color: var(--sky);
+  }
+
+  .board.size-4 .cell { font-size: clamp(1.6rem, 5vw, 2.2rem); }
+  .board.size-6 .cell { font-size: clamp(1.2rem, 4vw, 1.7rem); }
+
+  .cell.given {
+    color: var(--ink);
+    cursor: default;
+    background: #F1EEE6;
+  }
+
+  .cell.selected {
+    outline: 3px solid var(--coral);
+    outline-offset: -3px;
+  }
+
+  .cell.wrong {
+    color: var(--coral);
+    animation: shake 0.3s ease;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+
+  .numpad {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .num-btn, .clear-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    border: none;
+    font-family: 'Baloo 2', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.18);
+    transition: transform 0.1s ease;
+  }
+
+  .num-btn:active, .clear-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.18);
+  }
+
+  .num-btn[data-num="1"] { background: var(--coral); }
+  .num-btn[data-num="2"] { background: var(--sun); color: var(--ink); }
+  .num-btn[data-num="3"] { background: var(--sky); }
+  .num-btn[data-num="4"] { background: var(--leaf); }
+  .num-btn[data-num="5"] { background: #9B72CF; }
+  .num-btn[data-num="6"] { background: #2FB6A6; }
+  .clear-btn { background: #C9C2B4; font-size: 1.1rem; }
+
+  .status {
+    margin-top: 20px;
+    font-family: 'Baloo 2', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    min-height: 32px;
+    color: var(--leaf);
+    text-align: center;
+  }
+
+  .confetti {
+    position: fixed;
+    top: -20px;
+    font-size: 1.6rem;
+    animation: fall linear forwards;
+    pointer-events: none;
+  }
+
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(360deg); opacity: 0.2; }
+  }
+
+  footer {
+    margin-top: 30px;
+    font-size: 0.85rem;
+    opacity: 0.5;
+  }
+</style>
+</head>
+<body>
+
+  <h1>Number Squares</h1>
+  <div class="subtitle" id="subtitle">Fill in 1, 2, 3, and 4 — no repeats in any row, column, or box!</div>
+
+  <div class="controls">
+    <button class="size-btn active" data-size="4">4 × 4</button>
+    <button class="size-btn" data-size="6">6 × 6</button>
+  </div>
+
+  <div class="controls">
+    <button class="level-btn active" data-level="easy">Easy</button>
+    <button class="level-btn" data-level="medium">Medium</button>
+    <button class="level-btn" data-level="hard">Hard</button>
+    <button class="new-btn" id="newPuzzle">🔄 New Puzzle</button>
+  </div>
+
+  <div class="board-wrap">
+    <div class="board" id="board"></div>
+  </div>
+
+  <div class="numpad" id="numpad"></div>
+
+  <div class="status" id="status"></div>
+
+  <footer>Tap a square, then tap a number. Have fun!</footer>
+
+<script>
+(function() {
+  const boardEl = document.getElementById('board');
+  const statusEl = document.getElementById('status');
+  const numpadEl = document.getElementById('numpad');
+  const subtitleEl = document.getElementById('subtitle');
+
+  let solution = [];
+  let puzzle = [];
+  let given = [];
+  let selected = null;
+  let level = 'easy';
+  let size = 4;
+
+  const SIZE_CONFIGS = {
+    4: { boxRows: 2, boxCols: 2, clues: { easy: 9, medium: 7, hard: 5 } },
+    6: { boxRows: 2, boxCols: 3, clues: { easy: 22, medium: 18, hard: 14 } }
+  };
+
+  function config() { return SIZE_CONFIGS[size]; }
+
+  function isValid(grid, row, col, num) {
+    const { boxRows, boxCols } = config();
+    for (let c = 0; c < size; c++) if (grid[row][c] === num) return false;
+    for (let r = 0; r < size; r++) if (grid[r][col] === num) return false;
+    const boxRow = Math.floor(row / boxRows) * boxRows;
+    const boxCol = Math.floor(col / boxCols) * boxCols;
+    for (let r = boxRow; r < boxRow + boxRows; r++) {
+      for (let c = boxCol; c < boxCol + boxCols; c++) {
+        if (grid[r][c] === num) return false;
+      }
+    }
+    return true;
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function fillGrid(grid, pos = 0) {
+    const total = size * size;
+    if (pos === total) return true;
+    const row = Math.floor(pos / size);
+    const col = pos % size;
+    const nums = shuffle([...Array(size).keys()].map(n => n + 1));
+    for (const num of nums) {
+      if (isValid(grid, row, col, num)) {
+        grid[row][col] = num;
+        if (fillGrid(grid, pos + 1)) return true;
+        grid[row][col] = 0;
+      }
+    }
+    return false;
+  }
+
+  function countSolutions(grid, limit = 2) {
+    let count = 0;
+    const total = size * size;
+    function solve(pos) {
+      if (count >= limit) return;
+      if (pos === total) { count++; return; }
+      const row = Math.floor(pos / size);
+      const col = pos % size;
+      if (grid[row][col] !== 0) { solve(pos + 1); return; }
+      for (let num = 1; num <= size; num++) {
+        if (isValid(grid, row, col, num)) {
+          grid[row][col] = num;
+          solve(pos + 1);
+          grid[row][col] = 0;
+          if (count >= limit) return;
+        }
+      }
+    }
+    solve(0);
+    return count;
+  }
+
+  function makePuzzle() {
+    const full = Array.from({ length: size }, () => Array(size).fill(0));
+    fillGrid(full);
+    solution = full.map(r => [...r]);
+
+    const p = full.map(r => [...r]);
+    const totalCells = size * size;
+    const cellsToRemove = totalCells - config().clues[level];
+    const positions = shuffle([...Array(totalCells).keys()]);
+
+    let removed = 0;
+    for (const pos of positions) {
+      if (removed >= cellsToRemove) break;
+      const row = Math.floor(pos / size);
+      const col = pos % size;
+      const backup = p[row][col];
+      p[row][col] = 0;
+      const testGrid = p.map(r => [...r]);
+      if (countSolutions(testGrid, 2) === 1) {
+        removed++;
+      } else {
+        p[row][col] = backup;
+      }
+    }
+    puzzle = p;
+    given = p.map(r => r.map(v => v !== 0));
+  }
+
+  function renderBoard() {
+    const { boxRows, boxCols } = config();
+    boardEl.className = 'board size-' + size;
+    boardEl.innerHTML = '';
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.row = r;
+        cell.dataset.col = c;
+
+        let borderStyle = '';
+        if ((c + 1) % boxCols === 0 && c !== size - 1) borderStyle += 'border-right: 3px solid #2E2A26;';
+        if ((r + 1) % boxRows === 0 && r !== size - 1) borderStyle += 'border-bottom: 3px solid #2E2A26;';
+        cell.style.cssText = borderStyle;
+
+        if (given[r][c]) {
+          cell.classList.add('given');
+          cell.textContent = puzzle[r][c];
+        } else if (puzzle[r][c] !== 0) {
+          cell.textContent = puzzle[r][c];
+          cell.addEventListener('click', () => selectCell(r, c));
+        } else {
+          cell.addEventListener('click', () => selectCell(r, c));
+        }
+        boardEl.appendChild(cell);
+      }
+    }
+    highlightSelected();
+  }
+
+  function renderNumpad() {
+    numpadEl.innerHTML = '';
+    for (let n = 1; n <= size; n++) {
+      const btn = document.createElement('button');
+      btn.className = 'num-btn';
+      btn.dataset.num = n;
+      btn.textContent = n;
+      btn.addEventListener('click', () => placeNumber(n));
+      numpadEl.appendChild(btn);
+    }
+    const clearBtn = document.createElement('button');
+    clearBtn.className = 'clear-btn';
+    clearBtn.dataset.num = '0';
+    clearBtn.textContent = '✕';
+    clearBtn.addEventListener('click', () => placeNumber(0));
+    numpadEl.appendChild(clearBtn);
+  }
+
+  function highlightSelected() {
+    document.querySelectorAll('.cell').forEach(el => el.classList.remove('selected'));
+    if (selected) {
+      const el = document.querySelector(`.cell[data-row="${selected.row}"][data-col="${selected.col}"]`);
+      if (el) el.classList.add('selected');
+    }
+  }
+
+  function selectCell(r, c) {
+    if (given[r][c]) return;
+    selected = { row: r, col: c };
+    highlightSelected();
+    statusEl.textContent = '';
+  }
+
+  function placeNumber(num) {
+    if (!selected) {
+      statusEl.textContent = 'Tap a square first!';
+      statusEl.style.color = 'var(--coral)';
+      return;
+    }
+    const { row, col } = selected;
+    puzzle[row][col] = num;
+    renderBoard();
+    selected = { row, col };
+    highlightSelected();
+    checkComplete();
+  }
+
+  function checkComplete() {
+    const isFull = puzzle.every(row => row.every(v => v !== 0));
+    if (!isFull) { statusEl.textContent = ''; return; }
+
+    let allCorrect = true;
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        if (puzzle[r][c] !== solution[r][c]) allCorrect = false;
+      }
+    }
+
+    if (allCorrect) {
+      statusEl.textContent = '🎉 You did it! Great job!';
+      statusEl.style.color = 'var(--leaf)';
+      celebrate();
+    } else {
+      statusEl.textContent = 'Almost! Check for repeats. 🔍';
+      statusEl.style.color = 'var(--coral)';
+    }
+  }
+
+  function celebrate() {
+    const emojis = ['🎉', '⭐', '🎈', '✨', '🥳'];
+    for (let i = 0; i < 24; i++) {
+      setTimeout(() => {
+        const conf = document.createElement('div');
+        conf.className = 'confetti';
+        conf.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        conf.style.left = Math.random() * 100 + 'vw';
+        conf.style.animationDuration = (2 + Math.random() * 1.5) + 's';
+        document.body.appendChild(conf);
+        setTimeout(() => conf.remove(), 4000);
+      }, i * 60);
+    }
+  }
+
+  document.querySelectorAll('.level-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      level = btn.dataset.level;
+      startNewPuzzle();
+    });
+  });
+
+  document.querySelectorAll('.size-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      size = parseInt(btn.dataset.size, 10);
+      updateSubtitle();
+      renderNumpad();
+      startNewPuzzle();
+    });
+  });
+
+  document.getElementById('newPuzzle').addEventListener('click', startNewPuzzle);
+
+  document.addEventListener('keydown', (e) => {
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= size) placeNumber(n);
+    if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') placeNumber(0);
+  });
+
+  function updateSubtitle() {
+    const nums = [...Array(size).keys()].map(n => n + 1).join(', ');
+    const lastComma = nums.lastIndexOf(', ');
+    const withAnd = lastComma === -1 ? nums : nums.slice(0, lastComma) + ', and' + nums.slice(lastComma + 1);
+    subtitleEl.textContent = `Fill in ${withAnd} — no repeats in any row, column, or box!`;
+  }
+
+  function startNewPuzzle() {
+    selected = null;
+    statusEl.textContent = '';
+    makePuzzle();
+    renderBoard();
+  }
+
+  renderNumpad();
+  startNewPuzzle();
+})();
+</script>
+
+</body>
+</html>
